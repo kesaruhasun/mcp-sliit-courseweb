@@ -127,6 +127,20 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
         },
       },
       {
+        name: "set_session_cookie",
+        description: "Manually set the MoodleSession cookie (useful for headless VMs where you can't use a browser)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            value: {
+              type: "string",
+              description: "The value of the 'MoodleSession' cookie from your browser's DevTools",
+            },
+          },
+          required: ["value"],
+        },
+      },
+      {
         name: "interactive_login",
         description: "Open a browser window to manually log in to SLIIT Courseweb (useful for MFA)",
         inputSchema: {
@@ -163,6 +177,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         const data = await client.scrapePage(url);
         return {
           content: [{ type: "text", text: data }],
+        };
+      }
+      case "set_session_cookie": {
+        const { value } = z.object({ value: z.string() }).parse(request.params.arguments);
+        const result = await client.setSessionCookie(value);
+        return {
+          content: [{ type: "text", text: result }],
         };
       }
       case "sync_module": {

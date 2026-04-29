@@ -42,6 +42,34 @@ export class CoursewebClient {
         }
     }
 
+    async setSessionCookie(cookieValue: string) {
+        if (!this.browser) await this.init();
+        // Create a temporary context to set the cookie and save the state
+        const tempContext = await this.browser!.newContext();
+        
+        await tempContext.addCookies([{
+            name: 'MoodleSession',
+            value: cookieValue,
+            domain: 'courseweb.sliit.lk',
+            path: '/',
+            httpOnly: true,
+            secure: true,
+            sameSite: 'None'
+        }]);
+        
+        const sessionPath = path.resolve(__dirname, '../storage_state.json');
+        await tempContext.storageState({ path: sessionPath });
+        await tempContext.close();
+        
+        // Re-init the main context to use the new cookie
+        if (this.context) {
+            await this.context.close();
+            await this.init();
+        }
+        
+        return `Successfully injected MoodleSession cookie and saved state to ${sessionPath}`;
+    }
+
     async interactiveLogin() {
         // Force a visible browser specifically for interactive login
         const interactiveBrowser = await chromium.launch({ headless: false });

@@ -29,10 +29,19 @@ HEADLESS=true
 ```
 
 ### 3. Interactive Login
-Run the interactive login tool once to handle Microsoft SSO/MFA and save your session:
+If you are on a local machine with a UI, run this to handle MFA:
 ```bash
 node -e "import { CoursewebClient } from './build/courseweb.js'; const c = new CoursewebClient(); c.interactiveLogin().then(msg => { console.log(msg); process.exit(0); });"
 ```
+
+### 🌐 Headless VM / Remote Login (Universal)
+If you are running this on a headless VM (like an OpenClaw instance), you can log in without a browser:
+1. Log in to Courseweb on your personal computer.
+2. Open DevTools (F12) -> **Console** and run:
+   ```javascript
+   copy(document.cookie.split('; ').find(row => row.startsWith('MoodleSession=')).split('=')[1])
+   ```
+3. In your AI agent (Claude/Gemini), use the `set_session_cookie` tool and paste the value you just copied.
 
 ## 🔌 Claude Desktop Integration
 
