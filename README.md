@@ -33,7 +33,7 @@
 
 ## Overview
 
-The SLIIT Courseweb MCP server bridges AI coding agents—including Google Antigravity, Claude Code, Cursor, and OpenAI Codex—directly into SLIIT's Moodle-based academic portal (`courseweb.sliit.lk`).
+The SLIIT Courseweb MCP server bridges AI coding agents (including Google Antigravity, Claude Code, Cursor, and OpenAI Codex) directly into SLIIT's Moodle-based academic portal (`courseweb.sliit.lk`).
 
 Modern Moodle installations dynamically render courses using asynchronous plugins such as `format_tiles` and `format_grid`. Traditional DOM scrapers fail because non-active sections and topics remain unmounted placeholders in the initial HTML. This server implements a hybrid architecture: it communicates directly with Moodle's authenticated JSON-RPC web service (`core_courseformat_get_state`, `core_course_get_enrolled_courses_by_timeline_classification`, and `core_get_fragment`) for sub-second retrieval, while retaining a Playwright-backed headless browser fallback for SSO authentication, MFA sessions, and WAF protection bypass.
 
@@ -46,7 +46,7 @@ The server operates through a dual-channel execution pipeline optimized for spee
 | Feature | Direct Web Service RPC | Headless Browser Engine |
 | :--- | :--- | :--- |
 | **Primary Use** | Course listing, state inspection, file downloads | SSO login, interactive MFA, complex form evaluation |
-| **Latency Profile** | 200ms – 600ms per request | 2s – 10s per navigation |
+| **Latency Profile** | 200ms - 600ms per request | 2s - 10s per navigation |
 | **Course Formats** | Full support (`format_tiles`, `format_topics`, `format_weeks`) | Fallback DOM parsing |
 | **WAF Resilience** | Automatic `forcedownload=1` and trailing slash retry | Native Chromium cookie and header handling |
 | **Resource Footprint** | Minimal (Node.js HTTP client) | Moderate (Headless Chromium instance) |
