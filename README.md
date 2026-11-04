@@ -19,9 +19,9 @@
 
 <p align="center">
   <a href="#overview">Overview</a> &bull;
+  <a href="#installation">Installation</a> &bull;
   <a href="#architecture">Architecture</a> &bull;
   <a href="#project-structure">Structure</a> &bull;
-  <a href="#installation">Installation</a> &bull;
   <a href="#usage">Usage</a> &bull;
   <a href="#tools-reference">Tools</a> &bull;
   <a href="#verification-tests">Testing</a> &bull;
@@ -36,6 +36,34 @@
 The SLIIT Courseweb MCP server bridges AI coding agents (including Google Antigravity, Claude Code, Cursor, and OpenAI Codex) directly into SLIIT's Moodle-based academic portal (`courseweb.sliit.lk`).
 
 Modern Moodle installations dynamically render courses using asynchronous plugins such as `format_tiles` and `format_grid`. Traditional DOM scrapers fail because non-active sections and topics remain unmounted placeholders in the initial HTML. This server implements a hybrid architecture: it communicates directly with Moodle's authenticated JSON-RPC web service (`core_courseformat_get_state`, `core_course_get_enrolled_courses_by_timeline_classification`, and `core_get_fragment`) for sub-second retrieval, while retaining a Playwright-backed headless browser fallback for SSO authentication, MFA sessions, and WAF protection bypass.
+
+---
+
+## Installation
+
+### Prerequisites
+
+- Node.js 18.0.0 or higher
+- npm 9.0.0 or higher
+- Google Chrome or Chromium installed on the host system
+
+### Setup Steps
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/kesaruhasun/mcp-sliit-courseweb.git
+   cd mcp-sliit-courseweb
+   ```
+
+2. Install dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Compile TypeScript sources:
+   ```bash
+   npm run build
+   ```
 
 ---
 
@@ -84,34 +112,6 @@ graph TD
 ├── tsconfig.json             # TypeScript compiler configuration
 └── README.md                 # Technical specification and documentation
 ```
-
----
-
-## Installation
-
-### Prerequisites
-
-- Node.js 18.0.0 or higher
-- npm 9.0.0 or higher
-- Google Chrome or Chromium installed on the host system
-
-### Setup Steps
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/kesaruhasun/mcp-sliit-courseweb.git
-   cd mcp-sliit-courseweb
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Compile TypeScript sources:
-   ```bash
-   npm run build
-   ```
 
 ---
 
