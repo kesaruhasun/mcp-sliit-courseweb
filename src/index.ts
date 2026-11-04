@@ -10,7 +10,7 @@ import { z } from "zod";
 const server = new Server(
   {
     name: "courseweb-mcp",
-    version: "1.1.0",
+    version: "1.2.0",
   },
   {
     capabilities: {
