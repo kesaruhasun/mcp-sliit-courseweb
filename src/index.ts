@@ -10,7 +10,7 @@ import { z } from "zod";
 const server = new Server(
   {
     name: "courseweb-mcp",
-    version: "1.0.0",
+    version: "1.1.0",
   },
   {
     capabilities: {
@@ -26,10 +26,16 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
     tools: [
       {
         name: "list_modules",
-        description: "List all enrolled modules on SLIIT Courseweb",
+        description: "List enrolled modules on SLIIT Courseweb with optional status/starred filtering",
         inputSchema: {
           type: "object",
-          properties: {},
+          properties: {
+            filter: {
+              type: "string",
+              description: "Optional filter: 'all' (default), 'starred' (or 'favourites'), 'inprogress', 'past', or 'future'",
+              enum: ["all", "starred", "favourites", "inprogress", "past", "future"],
+            },
+          },
         },
       },
       {
@@ -42,13 +48,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "check_module_updates",
-        description: "Check for new materials or announcements in a specific module",
+        description: "Retrieve complete module structure, sections, activities, and materials (supports format_tiles, topics, and weeks)",
         inputSchema: {
           type: "object",
           properties: {
             courseId: {
               type: "string",
-              description: "The ID of the course to check",
+              description: "The ID of the course to inspect (e.g. 9220)",
             },
           },
           required: ["courseId"],
@@ -56,7 +62,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "get_deadlines",
-        description: "Fetch all upcoming assignment deadlines and events from Courseweb",
+        description: "Fetch upcoming assignment deadlines and calendar events from Courseweb",
         inputSchema: {
           type: "object",
           properties: {},
@@ -64,7 +70,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "scrape_page",
-        description: "Scrape the text content of any Courseweb URL to investigate the layout",
+        description: "Scrape the text content of any Courseweb URL to investigate layouts",
         inputSchema: {
           type: "object",
           properties: {
@@ -78,7 +84,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "download_file",
-        description: "Download a file from Courseweb (e.g. PDFs, lab sheets) given its resource URL",
+        description: "Download a file from Courseweb given its resource URL (handles WAF bypass, MIME extensions, and deduplication)",
         inputSchema: {
           type: "object",
           properties: {
@@ -89,25 +95,47 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             outputDir: {
               type: "string",
               description: "Optional: Directory to save the file. Defaults to ./downloads",
-            }
+            },
+            customFilename: {
+              type: "string",
+              description: "Optional: Custom filename override",
+            },
+          },
+          required: ["url"],
+        },
+      },
+      {
+        name: "get_folder_contents",
+        description: "Inspect and list all downloadable files inside a Moodle folder resource (mod/folder)",
+        inputSchema: {
+          type: "object",
+          properties: {
+            url: {
+              type: "string",
+              description: "The Moodle folder URL (e.g. https://courseweb.sliit.lk/mod/folder/view.php?id=492490)",
+            },
           },
           required: ["url"],
         },
       },
       {
         name: "sync_module",
-        description: "Bulk download all files (PDFs, lab sheets, etc.) from a specific course module",
+        description: "Bulk download all materials, slides, tutorials, and folder files from a course module",
         inputSchema: {
           type: "object",
           properties: {
             courseId: {
               type: "string",
-              description: "The ID of the course to sync (e.g. 8805)",
+              description: "The ID of the course to sync (e.g. 9220)",
             },
             outputDir: {
               type: "string",
               description: "Optional: Directory to save the files. Defaults to ./downloads",
-            }
+            },
+            organizeBySection: {
+              type: "boolean",
+              description: "Optional: Whether to organize files into subfolders by section name. Defaults to true",
+            },
           },
           required: ["courseId"],
         },
@@ -128,13 +156,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "set_session_cookie",
-        description: "Manually set the MoodleSession cookie (useful for headless VMs where you can't use a browser)",
+        description: "Manually inject the MoodleSession cookie value from DevTools",
         inputSchema: {
           type: "object",
           properties: {
             value: {
               type: "string",
-              description: "The value of the 'MoodleSession' cookie from your browser's DevTools",
+              description: "The value of the 'MoodleSession' cookie",
             },
           },
           required: ["value"],
@@ -142,7 +170,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
       },
       {
         name: "interactive_login",
-        description: "Open a browser window to manually log in to SLIIT Courseweb (useful for MFA)",
+        description: "Launch a browser window to authenticate with Microsoft SSO / MFA and save session state",
         inputSchema: {
           type: "object",
           properties: {},
@@ -166,10 +194,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     switch (request.params.name) {
       case "download_file": {
-        const args = z.object({ url: z.string(), outputDir: z.string().optional() }).parse(request.params.arguments);
-        const path = await client.downloadFile(args.url, args.outputDir);
+        const args = z.object({
+          url: z.string(),
+          outputDir: z.string().optional(),
+          customFilename: z.string().optional()
+        }).parse(request.params.arguments);
+        const path = await client.downloadFile(args.url, args.outputDir, args.customFilename);
         return {
           content: [{ type: "text", text: `Successfully downloaded file to: ${path}` }],
+        };
+      }
+      case "get_folder_contents": {
+        const { url } = z.object({ url: z.string() }).parse(request.params.arguments);
+        const files = await client.getFolderContents(url);
+        return {
+          content: [{ type: "text", text: JSON.stringify(files, null, 2) }],
         };
       }
       case "scrape_page": {
@@ -187,8 +226,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
       case "sync_module": {
-        const args = z.object({ courseId: z.string(), outputDir: z.string().optional() }).parse(request.params.arguments);
-        const results = await client.syncModule(args.courseId, args.outputDir);
+        const args = z.object({
+          courseId: z.string(),
+          outputDir: z.string().optional(),
+          organizeBySection: z.boolean().optional()
+        }).parse(request.params.arguments);
+        const results = await client.syncModule(args.courseId, args.outputDir, args.organizeBySection ?? true);
         return {
           content: [{ type: "text", text: JSON.stringify(results, null, 2) }],
         };
@@ -201,7 +244,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         };
       }
       case "list_modules": {
-        const courses = await client.getEnrolledCourses();
+        const args = z.object({
+          filter: z.enum(["all", "starred", "favourites", "inprogress", "past", "future"]).optional()
+        }).optional().parse(request.params.arguments);
+        const courses = await client.getEnrolledCourses(args?.filter || "all");
         return {
           content: [{ type: "text", text: JSON.stringify(courses, null, 2) }],
         };
